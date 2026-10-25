@@ -1,0 +1,306 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ==========================================
+# 1. PENGATURAN LIBRARY DAN GRAFIK
+# ==========================================
+
+plt.rcParams.update({
+    "font.size": 11,
+    "axes.spines.top": False,
+    "axes.spines.right": False
+})
+
+UNGU, EMAS = "#4a3b7a", "#c9892a"
+
+
+# ==========================================
+# 2. MEMBUAT DATASET FILM HARRY POTTER
+# ==========================================
+
+df = pd.DataFrame({
+    "film": [
+        "Philosopher's Stone",
+        "Chamber of Secrets",
+        "Prisoner of Azkaban",
+        "Goblet of Fire",
+        "Order of the Phoenix",
+        "Half-Blood Prince",
+        "Deathly Hallows 1",
+        "Deathly Hallows 2"
+    ],
+
+    "tahun": [2001, 2002, 2004, 2005, 2007, 2009, 2010, 2011],
+
+    "sutradara": [
+        "Columbus", "Columbus", "Cuarón", "Newell",
+        "Yates", "Yates", "Yates", "Yates"
+    ],
+
+    "anggaran": [125, 100, 130, 150, 150, 250, 125, 125],
+
+    "global": [
+        974.6, 879.0, 796.7, 896.1,
+        942.9, 934.0, 960.3, 1340.0
+    ],
+
+    "domestik": [
+        318.0, 262.0, 250.0, 290.0,
+        292.0, 302.0, 296.4, 381.0
+    ],
+
+    "opening": [
+        90.3, 88.4, 93.7, 102.7,
+        77.1, 77.8, 125.0, 169.2
+    ],
+
+    "rt": [80, 82, 90, 88, 78, 83, np.nan, 96],
+
+    "peringkat_tahun": [1, 4, 6, 3, 5, 3, np.nan, 1]
+})
+
+df.index = range(1, 9)
+
+print("DATASET FILM HARRY POTTER")
+display(df)
+
+
+# ==========================================
+# 3. MENGHITUNG VARIABEL ANALISIS
+# ==========================================
+
+# Indeks pendapatan global dibandingkan film pertama
+df["indeks"] = df["global"] / df.loc[1, "global"] * 100
+
+# Legs: pendapatan domestik dibagi pendapatan pembukaan
+df["legs"] = df["domestik"] / df["opening"]
+
+# Persentase pendapatan internasional
+df["porsi_intl"] = (
+    (df["global"] - df["domestik"]) / df["global"] * 100
+)
+
+# Pendapatan global kumulatif
+df["kumulatif"] = df["global"].cumsum()
+
+# Rasio pendapatan global terhadap anggaran
+df["rasio_anggaran"] = df["global"] / df["anggaran"]
+
+print("\nVARIABEL HASIL PERHITUNGAN")
+display(df)
+
+
+# ==========================================
+# 4. TABEL RINGKASAN
+# ==========================================
+
+print("\nTABEL RINGKASAN ANALISIS")
+
+display(
+    df[
+        [
+            "film",
+            "tahun",
+            "global",
+            "indeks",
+            "opening",
+            "legs",
+            "porsi_intl",
+            "peringkat_tahun"
+        ]
+    ].round(2)
+)
+
+
+# ==========================================
+# 5. GRAFIK 1: PENDAPATAN GLOBAL
+# ==========================================
+
+fig, ax = plt.subplots(figsize=(10, 4.8))
+
+warna = [UNGU] * 7 + [EMAS]
+
+ax.bar(df.index, df["global"], color=warna)
+
+for x, v, i in zip(df.index, df["global"], df["indeks"]):
+    ax.text(
+        x,
+        v + 20,
+        f"{v:,.0f}\n(indeks {i:.0f})",
+        ha="center",
+        fontsize=9
+    )
+
+ax.set_xticks(df.index)
+ax.set_xticklabels(df["film"], rotation=25, ha="right")
+ax.set_ylabel("Pendapatan global (juta USD)")
+ax.set_ylim(0, 1550)
+
+ax.set_title(
+    "Popularitas lewat pendapatan global (film 1 = indeks 100)",
+    loc="left",
+    fontweight="bold"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "grafik1_pendapatan.png",
+    dpi=150,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ==========================================
+# 6. GRAFIK 2: OPENING DAN LEGS
+# ==========================================
+
+fig, (a1, a2) = plt.subplots(1, 2, figsize=(11, 4.6))
+
+# Grafik pendapatan akhir pekan pembukaan AS
+a1.bar(df.index, df["opening"], color=UNGU)
+
+a1.set_title(
+    "Akhir pekan pembukaan AS (juta USD)",
+    loc="left",
+    fontweight="bold"
+)
+
+a1.set_xlabel("Film ke-")
+
+# Grafik legs
+a2.plot(
+    df.index,
+    df["legs"],
+    marker="o",
+    color=EMAS,
+    linewidth=2.5
+)
+
+a2.set_title(
+    "Legs: total domestik ÷ pembukaan",
+    loc="left",
+    fontweight="bold"
+)
+
+a2.set_xlabel("Film ke-")
+a2.set_ylim(0, 4.5)
+
+for x, y in zip(df.index, df["legs"]):
+    a2.text(
+        x,
+        y + 0.12,
+        f"{y:.2f}",
+        ha="center",
+        fontsize=9
+    )
+
+plt.tight_layout()
+
+plt.savefig(
+    "grafik2_opening_legs.png",
+    dpi=150,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ==========================================
+# 7. GRAFIK 3: PERINGKAT BOX OFFICE TAHUNAN
+# ==========================================
+
+# Menghapus data peringkat yang kosong
+d = df.dropna(subset=["peringkat_tahun"])
+
+fig, ax = plt.subplots(figsize=(10, 4.2))
+
+ax.plot(
+    d.index,
+    d["peringkat_tahun"],
+    marker="o",
+    color=UNGU,
+    linewidth=2.5
+)
+
+for x, y in zip(d.index, d["peringkat_tahun"]):
+    ax.text(
+        x,
+        y - 0.25,
+        f"#{int(y)}",
+        ha="center",
+        fontsize=10
+    )
+
+ax.set_ylim(6.6, 0.3)
+ax.set_xticks(df.index)
+ax.set_xticklabels(df["film"], rotation=25, ha="right")
+
+ax.set_ylabel("Peringkat film terlaris AS pada tahun rilis")
+
+ax.set_title(
+    "Posisi di tangga box office tahunan (#1 = terlaris)",
+    loc="left",
+    fontweight="bold"
+)
+
+plt.tight_layout()
+
+plt.savefig(
+    "grafik3_peringkat.png",
+    dpi=150,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ==========================================
+# 8. KORELASI PEARSON
+# ==========================================
+
+kor = df[
+    ["tahun", "global", "opening", "legs", "anggaran", "rt"]
+].corr().round(2)
+
+print("\nKORELASI PEARSON")
+print("Korelasi Pearson (pairwise, n kecil, hati-hati menafsirkan):")
+
+display(kor)
+
+
+# ==========================================
+# 9. TOTAL PENDAPATAN DAN ANGGARAN
+# ==========================================
+
+print(
+    "\nTotal pendapatan 8 film : USD {:,.1f} juta".format(
+        df["global"].sum()
+    )
+)
+
+print(
+    "Total anggaran          : USD {:,.0f} juta".format(
+        df["anggaran"].sum()
+    )
+)
+
+print(
+    "Rasio total             : {:.1f}x".format(
+        df["global"].sum() / df["anggaran"].sum()
+    )
+)
+
+
+# ==========================================
+# 10. RATA-RATA PENDAPATAN PER SUTRADARA
+# ==========================================
+
+print("\nRATA-RATA PENDAPATAN PER SUTRADARA")
+
+display(
+    df.groupby("sutradara", sort=False)["global"].mean().round(1)
+)
